@@ -12,4 +12,6 @@ export default defineConfig({
       },
     },
   },
+  // For Vercel deployment, API routes are handled by serverless functions
+  // The proxy is only needed for local development
 })
