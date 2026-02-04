@@ -357,7 +357,8 @@ function parseRSSFeed(
       // Require title and link, but make pubDate optional (use current date if missing)
       if (titleMatch && linkMatch) {
         const title = stripHtml(titleMatch[1]);
-        const link = linkMatch[1].startsWith('http') ? linkMatch[1] : stripHtml(linkMatch[1]);
+        let link = linkMatch[1].trim();
+        link = link.startsWith('http') ? link : stripHtml(link);
         const pubDate = pubDateMatch
           ? parseXMLDate(stripHtml(pubDateMatch[1]))
           : new Date();
@@ -555,11 +556,19 @@ export async function aggregateFeeds(): Promise<FeedItem[]> {
     seenIds.add(story.id);
   });
 
+  // Filter stories to only include those from the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentStories = uniqueStories.filter(story => {
+    const storyDate = new Date(story.pubDate);
+    return storyDate >= thirtyDaysAgo;
+  });
+
   // Sort by publication date (newest first)
-  uniqueStories.sort(
+  recentStories.sort(
     (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
   );
 
-  // Return latest 50 (we can limit to 15 on display)
-  return uniqueStories.slice(0, 50);
+  // Return all stories from the last 30 days
+  return recentStories;
 }

@@ -36,7 +36,6 @@ app.post('/api/feeds/clear-cache', (req, res) => {
 // Also allow GET for easier cache clearing
 app.get('/api/feeds/clear-cache', (req, res) => {
   clearFeedCache();
-  console.log('🗑️ Cache cleared');
   res.json({ message: 'Cache cleared' });
 });
 
@@ -61,7 +60,38 @@ app.get('/api/test/bicycleretailer', async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Test error:', error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Test endpoint to fetch Velo feed directly (for debugging)
+app.get('/api/test/velo', async (req, res) => {
+  try {
+    const { fetchAndParseRSSFeed } = await import('./lib/feedAggregator.js');
+    const { FEED_SOURCES } = await import('./lib/feedConfig.js');
+    const source = FEED_SOURCES.velo;
+    
+    if (!source) {
+      return res.status(404).json({ error: 'Velo feed source not found' });
+    }
+    
+    const stories = await fetchAndParseRSSFeed(source.url, 'velo');
+    
+    res.json({
+      feedUrl: source.url,
+      sourceKey: 'velo',
+      sourceName: source.name,
+      storiesFound: stories.length,
+      storiesWithImages: stories.filter(s => s.image).length,
+      stories: stories.slice(0, 5).map(s => ({
+        title: s.title,
+        hasImage: !!s.image,
+        image: s.image || null,
+        link: s.link,
+        source: s.source.name
+      }))
+    });
+  } catch (error) {
     res.status(500).json({ error: String(error) });
   }
 });
@@ -72,12 +102,10 @@ app.get('/api/feeds', async (req, res) => {
     // Check cache first
     const cached = getCachedFeeds();
     if (cached) {
-      console.log('📦 Serving from cache');
       res.setHeader('Cache-Control', 'public, max-age=3600');
       return res.status(200).json(cached);
     }
 
-    console.log('🔄 Cache miss - fetching fresh feeds...');
     // Fetch and aggregate feeds
     const stories = await aggregateFeeds();
 

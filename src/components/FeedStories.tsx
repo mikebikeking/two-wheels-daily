@@ -13,7 +13,7 @@ interface FeedStoriesProps {
 }
 
 export function FeedStories({ 
-  limit = 15, 
+  limit = 21, 
   sources,
   categories,
   showLastUpdated = true,
@@ -145,7 +145,7 @@ export function FeedStories({
         });
         
         // Ensure source diversity: limit stories per source, but prioritize images
-        const maxPerSource = Math.ceil(limit / 3); // Max 4 per source for 12 total
+        const maxPerSource = Math.ceil(limit / 3); // Max 7 per source for 21 total
         const sourceCounts = new Map<string, number>();
         const usedStoryIds = new Set<string>();
         const finalStories: FeedItem[] = [];
@@ -170,12 +170,35 @@ export function FeedStories({
         }
         
         // Second pass: fill remaining slots with best remaining stories (prioritizing images)
+        // If we still don't have enough after filtering by sources, include stories from all sources
         if (finalStories.length < limit) {
-          for (const story of sorted) {
-            if (!usedStoryIds.has(story.id)) {
-              finalStories.push(story);
-              usedStoryIds.add(story.id);
-              if (finalStories.length >= limit) break;
+          // If we filtered by sources and don't have enough, try all stories
+          if (sources && sources.length > 0) {
+            const allSorted = [...storiesWithDates].sort((a, b) => {
+              const aHasImage = !!a.image;
+              const bHasImage = !!b.image;
+              const aDate = new Date(a.pubDate).getTime();
+              const bDate = new Date(b.pubDate).getTime();
+              if (aHasImage && !bHasImage) return -1;
+              if (!aHasImage && bHasImage) return 1;
+              return bDate - aDate;
+            });
+            
+            for (const story of allSorted) {
+              if (!usedStoryIds.has(story.id)) {
+                finalStories.push(story);
+                usedStoryIds.add(story.id);
+                if (finalStories.length >= limit) break;
+              }
+            }
+          } else {
+            // No source filter, just use the sorted filtered list
+            for (const story of sorted) {
+              if (!usedStoryIds.has(story.id)) {
+                finalStories.push(story);
+                usedStoryIds.add(story.id);
+                if (finalStories.length >= limit) break;
+              }
             }
           }
         }
@@ -263,13 +286,6 @@ export function FeedStories({
   }
 
   if (gridLayout) {
-    // Debug: Always log when rendering
-    console.log('🎨 Rendering FeedStories in grid layout:', {
-      totalStories: stories.length,
-      storiesWithImages: stories.filter(s => s.image).length,
-      firstStoryImage: stories[0]?.image
-    });
-    
     return (
       <>
         {stories.map((story, index) => (

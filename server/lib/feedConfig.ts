@@ -49,4 +49,10 @@ export const FEED_SOURCES: Record<string, FeedSource> = {
     color: 'bg-blue-100 text-blue-800',
     categories: ['industry'], // Industry news and business updates
   },
+  velo: {
+    name: 'Velo',
+    url: 'https://velo.outsideonline.com/feed/',
+    color: 'bg-orange-100 text-orange-800',
+    categories: ['pro', 'gear'], // Competitive cycling news, race results, and bike reviews
+  },
 };

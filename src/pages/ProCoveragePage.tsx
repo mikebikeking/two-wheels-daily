@@ -20,7 +20,7 @@ export function ProCoveragePage({ onOpenModal }: ProCoveragePageProps) {
         {/* Live feed from all cycling news sources */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <FeedStories 
-            limit={12}
+            limit={21}
             sources={['Pinkbike', 'BikeRadar Road']}
             accentColor="#DFFF00"
             gridLayout={true}

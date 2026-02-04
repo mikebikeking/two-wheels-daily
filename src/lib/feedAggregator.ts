@@ -185,11 +185,19 @@ export async function aggregateFeeds(): Promise<FeedItem[]> {
   // Flatten and combine all stories
   const allStories = allFeeds.flat();
 
+  // Filter stories to only include those from the last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentStories = allStories.filter(story => {
+    const storyDate = new Date(story.pubDate);
+    return storyDate >= thirtyDaysAgo;
+  });
+
   // Sort by publication date (newest first)
-  allStories.sort(
+  recentStories.sort(
     (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
   );
 
-  // Return latest 50 (we can limit to 15 on display)
-  return allStories.slice(0, 50);
+  // Return all stories from the last 30 days
+  return recentStories;
 }
