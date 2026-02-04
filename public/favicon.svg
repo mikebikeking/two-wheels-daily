@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Outer rim -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#DFFF00" stroke-width="3"/>
+  
+  <!-- Inner rim -->
+  <circle cx="50" cy="50" r="35" fill="none" stroke="#DFFF00" stroke-width="2"/>
+  
+  <!-- Spokes -->
+  <line x1="50" y1="50" x2="50" y2="15" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="50" y2="85" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="15" y2="50" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="85" y2="50" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="67" y2="33" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="33" y2="67" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="33" y2="33" stroke="#DFFF00" stroke-width="2"/>
+  <line x1="50" y1="50" x2="67" y2="67" stroke="#DFFF00" stroke-width="2"/>
+  
+  <!-- Hub -->
+  <circle cx="50" cy="50" r="8" fill="#DFFF00"/>
+</svg>
