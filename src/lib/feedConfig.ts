@@ -55,6 +55,12 @@ export const FEED_SOURCES: Record<string, FeedSource> = {
     color: 'bg-orange-100 text-orange-800',
     categories: ['pro', 'gear'], // Competitive cycling news, race results, and bike reviews
   },
+  cyclingnews: {
+    name: 'Cyclingnews',
+    url: 'https://www.cyclingnews.com/feeds.xml',
+    color: 'bg-indigo-100 text-indigo-800',
+    categories: ['pro'], // Pro cycling news, race results, and women's cycling
+  },
 };
 
 export const FEED_URLS = Object.values(FEED_SOURCES).map(source => source.url);

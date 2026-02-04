@@ -96,6 +96,41 @@ app.get('/api/test/velo', async (req, res) => {
   }
 });
 
+// Test endpoint to fetch Cyclingnews feed directly (for debugging)
+app.get('/api/test/cyclingnews', async (req, res) => {
+  try {
+    const { fetchAndParseRSSFeed } = await import('./lib/feedAggregator.js');
+    const { FEED_SOURCES } = await import('./lib/feedConfig.js');
+    const source = FEED_SOURCES.cyclingnews;
+    
+    if (!source) {
+      return res.status(404).json({ error: 'Cyclingnews feed source not found' });
+    }
+    
+    const stories = await fetchAndParseRSSFeed(source.url, 'cyclingnews');
+    
+    res.json({
+      feedUrl: source.url,
+      sourceKey: 'cyclingnews',
+      sourceName: source.name,
+      storiesFound: stories.length,
+      storiesWithImages: stories.filter(s => s.image).length,
+      stories: stories.slice(0, 5).map(s => ({
+        title: s.title,
+        hasTitle: !!s.title && s.title.length > 0,
+        description: s.description,
+        hasDescription: !!s.description && s.description !== 'No description available',
+        hasImage: !!s.image,
+        image: s.image || null,
+        link: s.link,
+        source: s.source.name
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Feed aggregation endpoint
 app.get('/api/feeds', async (req, res) => {
   try {
@@ -120,6 +155,41 @@ app.get('/api/feeds', async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to fetch feeds. Please try again later.' 
     });
+  }
+});
+
+// Debug endpoint to check date filtering
+app.get('/api/debug/dates', async (req, res) => {
+  try {
+    const { aggregateFeeds } = await import('./lib/feedAggregator.js');
+    const stories = await aggregateFeeds();
+    
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const dateInfo = stories.slice(0, 10).map(s => {
+      const storyDate = new Date(s.pubDate);
+      const daysAgo = Math.floor((now.getTime() - storyDate.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        title: s.title.substring(0, 50),
+        pubDate: s.pubDate,
+        parsedDate: storyDate.toISOString(),
+        isValid: !isNaN(storyDate.getTime()),
+        daysAgo: daysAgo,
+        isWithin30Days: storyDate >= thirtyDaysAgo,
+        source: s.source.name
+      };
+    });
+    
+    res.json({
+      totalStories: stories.length,
+      thirtyDaysAgo: thirtyDaysAgo.toISOString(),
+      now: now.toISOString(),
+      sampleStories: dateInfo
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
   }
 });
 

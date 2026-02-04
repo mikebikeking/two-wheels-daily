@@ -128,36 +128,40 @@ export function FeedStories({
           }
         }
         
-        // Sort to prioritize images, then by date (newest first)
-        // This ensures stories with images appear first, regardless of source
+        // Sort by date (newest first), then by images as secondary
+        // Most recent stories appear first
         const sorted = [...filtered].sort((a, b) => {
-          const aHasImage = !!a.image;
-          const bHasImage = !!b.image;
           const aDate = new Date(a.pubDate).getTime();
           const bDate = new Date(b.pubDate).getTime();
+          const aHasImage = !!a.image;
+          const bHasImage = !!b.image;
           
-          // Primary sort: prioritize images
+          // Primary sort: by date (newest first)
+          if (bDate !== aDate) {
+            return bDate - aDate;
+          }
+          
+          // Secondary sort: prioritize images when dates are the same
           if (aHasImage && !bHasImage) return -1;
           if (!aHasImage && bHasImage) return 1;
           
-          // Secondary sort: by date (newest first)
-          return bDate - aDate;
+          return 0;
         });
         
-        // Ensure source diversity: limit stories per source, but prioritize images
+        // Ensure source diversity: limit stories per source, but maintain date order
         const maxPerSource = Math.ceil(limit / 3); // Max 7 per source for 21 total
         const sourceCounts = new Map<string, number>();
         const usedStoryIds = new Set<string>();
         const finalStories: FeedItem[] = [];
         
-        // First pass: prioritize stories with images per source
+        // First pass: add stories maintaining date order, but limit per source
         for (const story of sorted) {
           if (usedStoryIds.has(story.id)) continue;
           
           const sourceName = story.source.name;
           const count = sourceCounts.get(sourceName) || 0;
           
-          // If source hasn't reached max, add story (preferring ones with images due to sort order)
+          // If source hasn't reached max, add story (maintaining date order)
           if (count < maxPerSource) {
             finalStories.push(story);
             usedStoryIds.add(story.id);
@@ -169,19 +173,16 @@ export function FeedStories({
           }
         }
         
-        // Second pass: fill remaining slots with best remaining stories (prioritizing images)
+        // Second pass: fill remaining slots with best remaining stories (maintaining date order)
         // If we still don't have enough after filtering by sources, include stories from all sources
         if (finalStories.length < limit) {
           // If we filtered by sources and don't have enough, try all stories
           if (sources && sources.length > 0) {
+            // Re-sort all stories by date (newest first) to maintain chronological order
             const allSorted = [...storiesWithDates].sort((a, b) => {
-              const aHasImage = !!a.image;
-              const bHasImage = !!b.image;
               const aDate = new Date(a.pubDate).getTime();
               const bDate = new Date(b.pubDate).getTime();
-              if (aHasImage && !bHasImage) return -1;
-              if (!aHasImage && bHasImage) return 1;
-              return bDate - aDate;
+              return bDate - aDate; // Newest first
             });
             
             for (const story of allSorted) {
@@ -202,6 +203,13 @@ export function FeedStories({
             }
           }
         }
+        
+        // Final sort by date to ensure newest first (in case source diversity mixed things up)
+        finalStories.sort((a, b) => {
+          const aDate = new Date(a.pubDate).getTime();
+          const bDate = new Date(b.pubDate).getTime();
+          return bDate - aDate; // Newest first
+        });
         
         
         setStories(finalStories);

@@ -334,8 +334,10 @@ function parseRSSFeed(
       const itemXml = itemMatch[1];
 
       // Extract fields - try multiple patterns for flexibility
-      const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/.exec(itemXml) || 
-                        /<title[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/title>/.exec(itemXml);
+      // Handle CDATA sections (like Cyclingnews) - allow whitespace around CDATA
+      const titleMatch = /<title[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/title>/.exec(itemXml) ||
+                        /<title[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/title>/.exec(itemXml) ||
+                        /<title[^>]*>([\s\S]*?)<\/title>/.exec(itemXml);
       const linkMatch = /<link[^>]*>([\s\S]*?)<\/link>/.exec(itemXml) ||
                        /<link[^>]*href="([^"]*)"/.exec(itemXml);
       // Try pubDate, then dc:date, then published
@@ -344,8 +346,10 @@ function parseRSSFeed(
                           /<published[^>]*>([\s\S]*?)<\/published>/.exec(itemXml);
       // Try multiple patterns for description - some feeds have nested tags or HTML entities
       // Use non-greedy match first, then try with dotall flag for multiline
-      const descMatch = /<description[^>]*>([\s\S]*?)<\/description>/.exec(itemXml) ||
+      // Handle CDATA sections (like Cyclingnews) - allow whitespace around CDATA
+      const descMatch = /<description[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/description>/.exec(itemXml) ||
                        /<description[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/description>/.exec(itemXml) ||
+                       /<description[^>]*>([\s\S]*?)<\/description>/.exec(itemXml) ||
                        /<description[^>]*>([\s\S]*?)<\/description>/s.exec(itemXml);
       const contentEncodedMatch = /<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/.exec(itemXml) ||
                                  /<content:encoded[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/.exec(itemXml);
@@ -356,14 +360,18 @@ function parseRSSFeed(
 
       // Require title and link, but make pubDate optional (use current date if missing)
       if (titleMatch && linkMatch) {
-        const title = stripHtml(titleMatch[1]);
+        // Extract title - prioritize CDATA content (titleMatch[1] for CDATA patterns)
+        const titleText = titleMatch[1] || titleMatch[2] || titleMatch[0];
+        const title = stripHtml(titleText);
         let link = linkMatch[1].trim();
         link = link.startsWith('http') ? link : stripHtml(link);
         const pubDate = pubDateMatch
           ? parseXMLDate(stripHtml(pubDateMatch[1]))
           : new Date();
+        // Extract description - prioritize CDATA content (descMatch[1] for CDATA patterns)
+        // For CDATA patterns, descMatch[1] contains the content; for regular patterns, descMatch[1] contains the content
         const description = descMatch
-          ? extractDescription(descMatch[1] || descMatch[2])
+          ? extractDescription(descMatch[1] || descMatch[2] || descMatch[0])
           : 'No description available';
 
         // Extract image now that we have the link (for URL normalization)
@@ -557,11 +565,25 @@ export async function aggregateFeeds(): Promise<FeedItem[]> {
   });
 
   // Filter stories to only include those from the last 30 days
-  const thirtyDaysAgo = new Date();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0); // Set to start of day for consistent comparison
+  
   const recentStories = uniqueStories.filter(story => {
-    const storyDate = new Date(story.pubDate);
-    return storyDate >= thirtyDaysAgo;
+    try {
+      const storyDate = new Date(story.pubDate);
+      // Check if date is valid
+      if (isNaN(storyDate.getTime())) {
+        console.warn(`Invalid date for story: ${story.title} - ${story.pubDate}`);
+        return false;
+      }
+      // Compare dates (stories from 30 days ago or newer)
+      return storyDate >= thirtyDaysAgo;
+    } catch (error) {
+      console.warn(`Error parsing date for story: ${story.title} - ${story.pubDate}`, error);
+      return false;
+    }
   });
 
   // Sort by publication date (newest first)
