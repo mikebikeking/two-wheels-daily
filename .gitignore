@@ -25,3 +25,9 @@ dist-ssr
 
 # Server build output
 server/dist
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
